@@ -1,0 +1,5 @@
+.docker/data
+.DS_Store
+
+src/supervisord.log
+src/.DS_Store
