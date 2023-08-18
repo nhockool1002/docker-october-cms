@@ -1,0 +1,69 @@
+version: "3.8"
+services:
+  # PHP Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 'tc_web'
+    restart: unless-stopped
+    tty: true
+    working_dir: /var/www/html/root
+    volumes:
+      - ./src:/var/www/html/root
+      - ./.docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - tc-network
+
+  nginx:
+    image: nginx:alpine
+    build:
+      context: ./.docker/nginx
+      dockerfile: Dockerfile
+    container_name: 'tc_nginx'
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "4126:443"
+    volumes:
+      - ./src:/var/www/html/root
+    networks:
+      - tc-network
+
+  db:
+    image: 'mysql:8.0'
+    command:
+      --local-infile
+    container_name: 'tc_db'
+    ports:
+      - '33228:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: 'root'
+      MYSQL_DATABASE: 'tc-cms'
+      MYSQL_USER: 'tcadmin'
+      MYSQL_PASSWORD: 'tcadmin'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+    volumes:
+      - .docker/data/db:/var/lib/mysql
+      - ./.docker/mysql/mysql.cnf:/etc/mysql/mysql.cnf
+    networks:
+      - tc-network
+  
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: 'tc-phpmyadmin'
+    depends_on:
+      - db
+    restart: always
+    ports:
+      - "8262:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: "3306"
+      # MYSQL_ROOT_PASSWORD: root
+    networks:
+      - tc-network
+
+networks:
+  tc-network:
+    driver: bridge
